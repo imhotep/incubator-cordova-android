@@ -37,10 +37,8 @@ public class ChatHandler {
 		mView = view;
 		openChat = new HashMap<String,Chat>();
 	}
-	
-	public void connect(String uri, String username, String password, String resource, int port)
-	{
-		ConnectionConfiguration config = new ConnectionConfiguration(uri, port);
+
+	public void connect(ConnectionConfiguration config, String username, String password, String resource) {
 		mConn = new XMPPConnection(config);
 		try {
 			mView.loadUrl("javascript:navigator.xmppClient._xmppClientConnecting()");
@@ -49,15 +47,26 @@ public class ChatHandler {
 		} catch (XMPPException e) {
 			e.printStackTrace();
 			mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidNotConnect()");
+			return;
 		}
-		finally
-		{
-			mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidConnect()");
-			mChatManager = mConn.getChatManager();
-			setupListeners();
-		}
+		mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidConnect()");
+		mChatManager = mConn.getChatManager();
+		setupListeners();
 	}
-	
+
+	public void connect(String uri, String username, String password, String resource, int port)
+	{
+		connect(new ConnectionConfiguration(uri, port), username, password, resource);
+	}
+
+	public void connect(String jid, String password, String resource)
+	{
+		int at = jid.lastIndexOf('@');
+		String domain = jid.substring(at + 1);
+		String username = jid.substring(0, at);
+		connect(new ConnectionConfiguration(domain), username, password, resource);
+	}
+
 	private void setupListeners()
 	{
 		/*
