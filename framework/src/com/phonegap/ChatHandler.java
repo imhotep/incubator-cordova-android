@@ -55,6 +55,7 @@ public class ChatHandler {
 			mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidConnect()");
 			mChatManager = mConn.getChatManager();
 			setupListeners();
+			setupRosterListener();
 		}
 	}
 	
@@ -67,8 +68,13 @@ public class ChatHandler {
 
 			public void processPacket(Packet packet) {
 				Message message = (Message) packet;
+				String origin = message.getFrom().split("/")[0];
+				Chat chat = openChat.get(origin);
+				if(chat == null)
+					setupChat(message.getFrom());
                 if (message.getBody() != null) {
                 	mView.loadUrl("javascript:alert('" + message.getBody() + "');");
+                	getRoster();
                 }
 				
 			}
@@ -76,19 +82,28 @@ public class ChatHandler {
 		};
 		PacketFilter filter = new MessageTypeFilter(Message.Type.chat);
 		mConn.addPacketListener(msgListener, filter);
+	}	
+	
+	public void getRoster()
+	{
+		if (mRoster != null)
+		{
+			Collection<RosterEntry> entries = mRoster.getEntries();
+			for(RosterEntry entry: entries){
+				//Access the WebView and pass the entries back to the Javascript
+				//Most likely to the EventBroadcaster
+				Log.d("Jabber", entry.getName());
+			}
+		}
 	}
 	
 	public void disconnect()
 	{
 	}
 	
-	public void getRoster()
+	public void findServices()
 	{
-		Collection<RosterEntry> entries = mRoster.getEntries();
-		for(RosterEntry entry: entries){
-			//Access the WebView and pass the entries back to the Javascript
-			//Most likely to the EventBroadcaster
-		}
+	
 	}
 	
 	/*
@@ -153,8 +168,6 @@ public class ChatHandler {
 			chat = setupChat(person);
 		try {
 			chat.sendMessage(message);
-			Collection<MessageListener> foo = chat.getListeners();
-			Log.d("Length of listeners", Integer.toString(foo.size()));
 		} catch (XMPPException e) {
 			mView.loadUrl("javascript:navigator.xmppClient._didReceiveError()");
 			e.printStackTrace();
