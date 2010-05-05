@@ -29,7 +29,8 @@ public class ChatHandler {
 	Roster mRoster = null;
 	ChatManager mChatManager = null;
 	HashMap<String, Chat> openChat;
-	
+	boolean debug = false;
+
 	WebView mView;
 	
 	ChatHandler(WebView view)
@@ -38,7 +39,12 @@ public class ChatHandler {
 		openChat = new HashMap<String,Chat>();
 	}
 
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+	}
+
 	public void connect(ConnectionConfiguration config, String username, String password, String resource) {
+		config.setDebuggerEnabled(debug);
 		mConn = new XMPPConnection(config);
 		try {
 			mView.loadUrl("javascript:navigator.xmppClient._xmppClientConnecting()");
