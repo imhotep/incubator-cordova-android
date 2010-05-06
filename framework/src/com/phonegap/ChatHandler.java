@@ -15,6 +15,7 @@ import org.jivesoftware.smack.Roster;
 import org.jivesoftware.smack.RosterEntry;
 import org.jivesoftware.smack.RosterListener;
 import org.jivesoftware.smack.SmackConfiguration;
+
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.filter.MessageTypeFilter;
@@ -31,6 +32,7 @@ import org.jivesoftware.smack.provider.ProviderManager;
 import org.jivesoftware.smackx.GroupChatInvitation;
 import org.jivesoftware.smackx.PrivateDataManager;
 import org.jivesoftware.smackx.ServiceDiscoveryManager;
+import org.jivesoftware.smackx.XHTMLManager;
 import org.jivesoftware.smackx.packet.ChatStateExtension;
 import org.jivesoftware.smackx.packet.DiscoverItems;
 import org.jivesoftware.smackx.packet.LastActivity;
@@ -66,6 +68,8 @@ public class ChatHandler {
 	ChatManager mChatManager = null;
 	HashMap<String, Chat> openChat;
 	boolean debug = false;
+	ServiceDiscoveryManager discoStu;
+
 
 	WebView mView;
 	
@@ -88,6 +92,7 @@ public class ChatHandler {
 			mView.loadUrl("javascript:navigator.xmppClient._xmppClientConnecting()");
 			mConn.connect();
 			mConn.login(username, password, resource);
+			discoStu = new ServiceDiscoveryManager(mConn);
 		} catch (XMPPException e) {
 			e.printStackTrace();
 			mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidNotConnect()");
@@ -127,8 +132,9 @@ public class ChatHandler {
 				String origin = message.getFrom().split("/")[0];
 				Chat chat = openChat.get(origin);
 				if(chat == null)
-					setupChat(message.getFrom());
+					setupChat(message.getFrom());				
                 if (message.getBody() != null) {
+                	//Check for XHTML            
                 	mView.loadUrl("javascript:alert('" + message.getBody() + "');");
                 	getRoster();
                 }
@@ -141,39 +147,6 @@ public class ChatHandler {
 		mConn.addPacketListener(msgListener, filter);
 	}	
 	
-    private DiscoverItems discoverItems(String entityID) throws XMPPException {
-        return discoverItems(entityID, null);
-    }
-
-
-	private DiscoverItems discoverItems(String entityId, String node) throws XMPPException
-	{
-	       // Discover the entity's info
-	       // Discover the entity's items
-        DiscoverItems disco = new DiscoverItems();
-        disco.setType(IQ.Type.GET);
-        disco.setTo(entityId);
-        disco.setNode(node);
-
-        // Create a packet collector to listen for a response.
-        PacketCollector collector =
-            mConn.createPacketCollector(new PacketIDFilter(disco.getPacketID()));
-
-        mConn.sendPacket(disco);
-
-        // Wait up to 5 seconds for a result.
-        IQ result = (IQ) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
-        // Stop queuing results
-        collector.cancel();
-        if (result == null) {
-            throw new XMPPException("No response from the server.");
-        }
-        if (result.getType() == IQ.Type.ERROR) {
-            throw new XMPPException(result.getError());
-        }
-        return (DiscoverItems) result;
-        
-	}
 	
 	public void getRoster()
 	{
@@ -257,8 +230,28 @@ public class ChatHandler {
 		Chat chat = openChat.get(person);
 		if(chat == null)
 			chat = setupChat(person);
-		try {
+		try {			ServiceDiscoveryManager discoStu = ServiceDiscoveryManager.getInstanceFor(mConn);
+
 			chat.sendMessage(message);
+		} catch (XMPPException e) {
+			mView.loadUrl("javascript:navigator.xmppClient._didReceiveError()");
+			e.printStackTrace();
+		}
+	}
+
+	public void sendHtmlMessage(String person, String htmlMessage, String plaintext)
+	{
+		Chat chat = openChat.get(person);
+		if(chat == null)
+			chat = setupChat(person);
+		try {
+			Message msg = new Message();
+			msg.setBody(plaintext);
+			if (XHTMLManager.isServiceEnabled(mConn, chat.getParticipant()))
+			{
+				XHTMLManager.addBody(msg, htmlMessage);
+			}
+			chat.sendMessage(msg);			
 		} catch (XMPPException e) {
 			mView.loadUrl("javascript:navigator.xmppClient._didReceiveError()");
 			e.printStackTrace();
@@ -268,7 +261,6 @@ public class ChatHandler {
 	// This epic fails currently 
 	public void discoverServices(String resource)
 	{
-		ServiceDiscoveryManager discoStu = ServiceDiscoveryManager.getInstanceFor(mConn);
 		if(discoStu == null)
 		{
 			//Disco Stu is coming back baby!!!!
@@ -276,7 +268,7 @@ public class ChatHandler {
 		}
 		DiscoverItems discoItems;
 		try {
-			discoItems = discoverItems(resource);
+			discoItems = discoStu.discoverItems(resource);
 			Iterator it = discoItems.getItems();
 			
 			while(it.hasNext())
