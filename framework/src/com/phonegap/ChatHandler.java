@@ -2,6 +2,7 @@ package com.phonegap;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
@@ -19,6 +20,10 @@ import org.jivesoftware.smack.filter.PacketFilter;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.Presence;
+
+
+import org.jivesoftware.smackx.ServiceDiscoveryManager;
+import org.jivesoftware.smackx.packet.DiscoverItems;
 
 import android.util.Log;
 import android.webkit.WebView;
@@ -190,6 +195,31 @@ public class ChatHandler {
 			mView.loadUrl("javascript:navigator.xmppClient._didReceiveError()");
 			e.printStackTrace();
 		}
+	}
+	
+	public void discoverServices(String resource)
+	{
+		ServiceDiscoveryManager discoStu = ServiceDiscoveryManager.getInstanceFor(mConn);
+		if(discoStu == null)
+		{
+			//Disco Stu is coming back baby!!!!
+			discoStu = new ServiceDiscoveryManager(mConn);
+		}
+		DiscoverItems discoItems;
+		try {
+			discoItems = discoStu.discoverItems(resource);
+			Iterator it = discoItems.getItems();
+			
+			while(it.hasNext())
+			{
+				DiscoverItems.Item item = (DiscoverItems.Item) it.next();
+				String params = item.getEntityID() + "','" + item.getNode() + "','" + item.getName();
+				// Take this data, and send it to a collector
+			}
+		} catch (XMPPException e) {
+			// Discovery failed, call JS Fail
+		}
+		
 	}
 	
 }
