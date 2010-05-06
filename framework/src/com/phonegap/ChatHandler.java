@@ -197,6 +197,7 @@ public class ChatHandler {
 		}
 	}
 	
+	// This epic fails currently 
 	public void discoverServices(String resource)
 	{
 		ServiceDiscoveryManager discoStu = ServiceDiscoveryManager.getInstanceFor(mConn);
