@@ -65,11 +65,13 @@ import org.jivesoftware.smackx.provider.XHTMLExtensionProvider;
 import org.jivesoftware.smackx.pubsub.AccessModel;
 import org.jivesoftware.smackx.pubsub.ConfigureForm;
 import org.jivesoftware.smackx.pubsub.FormType;
+import org.jivesoftware.smackx.pubsub.ItemPublishEvent;
 import org.jivesoftware.smackx.pubsub.LeafNode;
 import org.jivesoftware.smackx.pubsub.Node;
 import org.jivesoftware.smackx.pubsub.PayloadItem;
 import org.jivesoftware.smackx.pubsub.PubSubManager;
 import org.jivesoftware.smackx.pubsub.SimplePayload;
+import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
 import org.jivesoftware.smackx.search.UserSearch;
 
 import android.util.Log;
@@ -85,6 +87,7 @@ public class ChatHandler {
 	boolean debug = false;
 	ServiceDiscoveryManager discoStu;
 	PubSubManager mPubSubMan;
+	String mJid;
 
 	WebView mView;
 	
@@ -219,11 +222,12 @@ public class ChatHandler {
 
 		form.setAccessModel(AccessModel.open);
 		
-		PubSubManager manager = new PubSubManager(mConn, resource);
+		if (mPubSubMan == null)
+			mPubSubMan = new PubSubManager(mConn, resource);
 		
 		LeafNode myNode;
 		try {
-			myNode = (LeafNode) manager.createNode(nodeTitle, form);
+			myNode = (LeafNode) mPubSubMan.createNode(nodeTitle, form);
 			SimplePayload payload = new SimplePayload(name,xmlns, xmlPayload);
 			PayloadItem<SimplePayload> item = new PayloadItem<SimplePayload>(null, payload);
 
@@ -234,6 +238,37 @@ public class ChatHandler {
 		}
 	}
 	
+	public void subscribe(String resource, String node, String event_key)
+	{
+		if (mPubSubMan == null)
+			mPubSubMan = new PubSubManager(mConn, resource);
+		try {
+			Node eventNode = mPubSubMan.getNode(node);
+			if(eventNode != null)
+			{
+				eventNode.addItemEventListener( 
+						new ItemEventListener() {
+
+							public void handlePublishedItems(ItemPublishEvent items) {
+								Iterator it = (Iterator) items.getItems();
+								while(it.hasNext())
+								{
+									Item i = (Item) it.next();
+									String node = i.toXML();
+									// Send the escaped XML to Javascript???
+								}
+							}
+						}
+				);
+				// My JID
+				eventNode.subscribe(mJid);
+			}
+		} catch (XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
 	
 	public void getRoster()
 	{
