@@ -143,7 +143,7 @@ public class DroidGap extends Activity {
     	netMan = new NetworkManager(this, appView);
     	mCompass = new CompassListener(this, appView);  
     	crypto = new CryptoHandler(appView);
-    	jabber = new ChatHandler(appView);
+    	jabber = new ChatHandler(appView, this);
     	
     	// This creates the new javascript interfaces for PhoneGap
     	appView.addJavascriptInterface(gap, "DroidGap");

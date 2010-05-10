@@ -1,5 +1,7 @@
 package com.phonegap;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,6 +39,11 @@ import org.jivesoftware.smackx.NodeInformationProvider;
 import org.jivesoftware.smackx.PrivateDataManager;
 import org.jivesoftware.smackx.ServiceDiscoveryManager;
 import org.jivesoftware.smackx.XHTMLManager;
+import org.jivesoftware.smackx.filetransfer.FileTransferListener;
+import org.jivesoftware.smackx.filetransfer.FileTransferManager;
+import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
+import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
+import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
 import org.jivesoftware.smackx.muc.MultiUserChat;
 import org.jivesoftware.smackx.packet.ChatStateExtension;
 import org.jivesoftware.smackx.packet.DiscoverItems;
@@ -74,6 +81,12 @@ import org.jivesoftware.smackx.pubsub.SimplePayload;
 import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
 import org.jivesoftware.smackx.search.UserSearch;
 
+import com.phonegap.DroidGap.GapClient.GapCancelDialog;
+import com.phonegap.DroidGap.GapClient.GapOKDialog;
+
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.util.Log;
 import android.webkit.WebView;
 
@@ -87,13 +100,16 @@ public class ChatHandler {
 	boolean debug = false;
 	ServiceDiscoveryManager discoStu;
 	PubSubManager mPubSubMan;
+	FileTransferManager mFileMan;
 	String mJid;
 
 	WebView mView;
+	Context mCtx;
 	
-	ChatHandler(WebView view)
+	ChatHandler(WebView view, Context ctx)
 	{
 		mView = view;
+		mCtx = ctx;
 		openChat = new HashMap<String,Chat>();
 		mPm = ProviderManager.getInstance();
 		configure(mPm);
@@ -156,6 +172,12 @@ public class ChatHandler {
 		discoStu.addFeature("jabber:iq:privacy");
 	}
 
+	/*
+	 * This handles the chat listener.  We can't simply listen to chats for some reason, and intead have to grab the chats
+	 * from the packets.  The other listeners work properly in SMACK
+	 * 
+	 */
+	
 	private void setupListeners()
 	{
 		/*
@@ -170,8 +192,16 @@ public class ChatHandler {
 				if(chat == null)
 					setupChat(message.getFrom());				
                 if (message.getBody() != null) {
-                	//Check for XHTML            
-                	mView.loadUrl("javascript:alert('" + message.getBody() + "');");
+                	//Check for XHTML
+                	Iterator it = XHTMLManager.getBodies(message);
+                	if (it != null)
+                	{
+                		while(it.hasNext())
+                		{
+                			//Send the XHTML to Javascript
+                		}
+                	}
+                    mView.loadUrl("javascript:alert('" + message.getBody() + "');");
                 	getRoster();
                 }
 				
@@ -270,6 +300,106 @@ public class ChatHandler {
 		
 	}
 	
+	public void sendFile(String file, String jid, String message)
+	{
+		if (mFileMan == null)
+		 mFileMan = new FileTransferManager(mConn);
+		
+		OutgoingFileTransfer trans = mFileMan.createOutgoingFileTransfer(jid);
+		try {
+			trans.sendFile(new File(file), message);
+		} catch (XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+	
+	public void addFileTransferListener(String eventId, final boolean prompt, final String message)
+	{
+		if (mFileMan == null)
+			 mFileMan = new FileTransferManager(mConn);
+		
+		  // Create the listener
+	      mFileMan.addFileTransferListener(new FileTransferListener() {
+	            public void fileTransferRequest(FileTransferRequest request) {
+	                  // Check to see if the request should be accepted
+	                  if(prompt)
+	                  {
+	                	  promptUser(request, message);
+	                  }
+	                  else
+	                  {
+	                        IncomingFileTransfer transfer = request.accept();
+	                        try {
+								transfer.recieveFile(new File(request.getFileName()));
+							} catch (XMPPException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+	                  }
+	            }
+	      });
+
+	}
+	
+	private void promptUser(FileTransferRequest request, String message)
+	{
+        // This shows the dialog box.  This can be commented out for dev
+        AlertDialog.Builder alertBldr = new AlertDialog.Builder(mCtx);
+        FileOKDialog okHook = new FileOKDialog(request);
+        FileCancelDialog cancelHook = new FileCancelDialog(request);
+        alertBldr.setMessage(message);
+        alertBldr.setTitle("Alert");
+        alertBldr.setCancelable(true);
+        alertBldr.setPositiveButton("OK", okHook);
+        alertBldr.setNegativeButton("Cancel", cancelHook);
+        alertBldr.show();
+	}
+	
+	/*
+	 * This is the Code for the OK Button
+	 */
+	
+	public class FileOKDialog implements DialogInterface.OnClickListener {
+		
+		FileTransferRequest mRequest;
+		
+		FileOKDialog(FileTransferRequest request)
+		{
+			mRequest = request;
+		}
+		
+		public void onClick(DialogInterface dialog, int which) {
+            IncomingFileTransfer transfer = mRequest.accept();
+            try {
+				transfer.recieveFile(new File(mRequest.getFileName()));
+			} catch (XMPPException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			dialog.dismiss();
+		}			
+	
+	}
+	
+	public class FileCancelDialog implements DialogInterface.OnClickListener {
+		
+		FileTransferRequest mRequest;
+		
+		FileCancelDialog(FileTransferRequest request)
+		{
+			mRequest = request;
+		}
+		
+		
+		public void onClick(DialogInterface dialog, int which) {
+			mRequest.reject();
+			dialog.dismiss();
+		}			
+	
+	}
+	
 	public void getRoster()
 	{
 		if (mRoster != null)
@@ -285,11 +415,6 @@ public class ChatHandler {
 			}
 		}
 	}
-	
-	public void disconnect()
-	{
-	}
-	
 	
 	/*
 	 * This handles changes in the roster, and all presence information
@@ -346,13 +471,16 @@ public class ChatHandler {
 		return chat;
 	}
 	
+	/*
+	 * This is the code that handles HTML messages
+	 */
+	
 	public void sendMessage(String person, String message)
 	{
 		Chat chat = openChat.get(person);
 		if(chat == null)
 			chat = setupChat(person);
-		try {			ServiceDiscoveryManager discoStu = ServiceDiscoveryManager.getInstanceFor(mConn);
-
+		try {			
 			chat.sendMessage(message);
 		} catch (XMPPException e) {
 			mView.loadUrl("javascript:navigator.xmppClient._didReceiveError()");
