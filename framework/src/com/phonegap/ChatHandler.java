@@ -411,7 +411,7 @@ public class ChatHandler {
 				String name = entry.getName();
 				String user = entry.getUser();
 				String status = entry.getStatus().toString();
-				Log.d("Jabber", entry.getUser());
+				mView.loadUrl("javascript:navigator.xmppClient._addToRoster('" + name + "','"+ user + "','" + status + "');");
 			}
 		}
 	}
