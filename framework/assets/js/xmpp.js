@@ -32,6 +32,7 @@ function XMPPClient()
 	this.messageMap = {};
 	this.unreadCount = 0;
   this.subs = {};
+  this.fileListeners = {};
 }
 
 // username, password, domain are required
@@ -66,9 +67,20 @@ XMPPClient.prototype.subscribe = function(resource, node, win)
   XmppHook.subscribe(resource, node, win.name());
 }
 
-XMPPClient.prototpe.discoverServices = function(resource)
+XMPPClient.prototype.discoverServices = function(resource)
 {
   XmppHook.discoverServices(resource);
+}
+
+XMPPClient.prototype.sendFile = function(file, user, message)
+{
+  XmppHook.sendFile(file, user, message);
+}
+
+XMPPClient.prototype.addFileTransferListener(method, prompt, message)
+{
+  this.fileListeners[method.name()] = method;
+  XmppHook.addFileTrasferListener(method.name(), prompt, message);
 }
 
 XMPPClient.prototype._xmppServiceFound = function(entityId, node, name)
