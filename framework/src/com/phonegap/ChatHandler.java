@@ -79,6 +79,8 @@ import org.jivesoftware.smackx.pubsub.PayloadItem;
 import org.jivesoftware.smackx.pubsub.PubSubManager;
 import org.jivesoftware.smackx.pubsub.SimplePayload;
 import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
+import org.jivesoftware.smackx.pubsub.packet.PubSubNamespace;
+import org.jivesoftware.smackx.pubsub.provider.SubscriptionProvider;
 import org.jivesoftware.smackx.search.UserSearch;
 
 import com.phonegap.DroidGap.GapClient.GapCancelDialog;
@@ -102,6 +104,7 @@ public class ChatHandler {
 	PubSubManager mPubSubMan;
 	FileTransferManager mFileMan;
 	String mJid;
+	ItemEventListener mItemEventListener;
 
 	WebView mView;
 	Context mCtx;
@@ -155,6 +158,7 @@ public class ChatHandler {
 				mChatManager = mConn.getChatManager();
 				setupListeners();
 				setupRosterListener();
+				mJid = username + "@" + config.getHost();
 			}
 		}
 	}
@@ -201,6 +205,8 @@ public class ChatHandler {
                 			//Send the XHTML to Javascript
                 		}
                 	}
+                	mView.loadUrl("javascript:navigator.xmppclient._didReceiveMessage('" + message + "','" + origin 
+                			+ "','" + message.getPacketID() + "');");
                     mView.loadUrl("javascript:alert('" + message.getBody() + "');");
                 	getRoster();
                 }
@@ -244,7 +250,7 @@ public class ChatHandler {
 		
 	}
 	
-	public void publish(String resource, String name, String xmlns, String xmlPayload, String nodeTitle, boolean persist)
+	public void publish(String resource, String name, String xmlns, String xmlPayload, String nodeType, boolean persist)
 	{
 		ConfigureForm form = new ConfigureForm(FormType.submit);
 		form.setPersistentItems(persist);
@@ -257,7 +263,9 @@ public class ChatHandler {
 		
 		LeafNode myNode;
 		try {
-			myNode = (LeafNode) mPubSubMan.createNode(nodeTitle, form);
+			myNode = (LeafNode) mPubSubMan.getNode(nodeType);
+			if (myNode == null)
+				myNode = (LeafNode) mPubSubMan.createNode(nodeType, form);
 			SimplePayload payload = new SimplePayload(name,xmlns, xmlPayload);
 			PayloadItem<SimplePayload> item = new PayloadItem<SimplePayload>(null, payload);
 
@@ -268,7 +276,7 @@ public class ChatHandler {
 		}
 	}
 	
-	public void subscribe(String resource, String node, String event_key)
+	public void subscribe(String resource, String node, final String event_key)
 	{
 		if (mPubSubMan == null)
 			mPubSubMan = new PubSubManager(mConn, resource);
@@ -285,17 +293,17 @@ public class ChatHandler {
 								{
 									Item i = (Item) it.next();
 									String node = i.toXML();
-									// Send the escaped XML to Javascript???
+									mView.loadUrl("javascript:navigator.xmppclient._xmppRecvSub('" + node + "','" + event_key + "');");
 								}
 							}
 						}
 				);
 				// My JID
+
 				eventNode.subscribe(mJid);
 			}
 		} catch (XMPPException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			mView.loadUrl("javascript:navigator.xmppclient._xmppSubFail()");
 		}
 		
 	}
@@ -335,6 +343,10 @@ public class ChatHandler {
 							} catch (XMPPException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
+							}
+							finally
+							{
+								
 							}
 	                  }
 	            }
@@ -436,7 +448,7 @@ public class ChatHandler {
 
 			public void entriesDeleted(Collection<String> arg0) {
 				for (String str : arg0)
-				{
+				{ 
 				
 				}
 				
@@ -541,11 +553,10 @@ public class ChatHandler {
 	 * This was grabbed from the Ignite Realtime Board, and is the META-INF file that is  
 	 * ignored by Android.  That's why this is here.
 	 */
-	public void configure(ProviderManager pm) {
+	private void configure(ProviderManager pm) {
 		 
         //  Private Data Storage
         pm.addIQProvider("query","jabber:iq:private", new PrivateDataManager.PrivateDataIQProvider());
- 
  
         //  Time
         try {
@@ -647,6 +658,129 @@ public class ChatHandler {
         pm.addExtensionProvider("bad-payload", "http://jabber.org/protocol/commands", new AdHocCommandDataProvider.BadPayloadError());
         pm.addExtensionProvider("bad-sessionid", "http://jabber.org/protocol/commands", new AdHocCommandDataProvider.BadSessionIDError());
         pm.addExtensionProvider("session-expired", "http://jabber.org/protocol/commands", new AdHocCommandDataProvider.SessionExpiredError());
-    }
+    
+        // PubSub
+        pm.addIQProvider(
+                "query", "http://jabber.org/protocol/disco#items",
+                 new org.jivesoftware.smackx.provider.DiscoverItemsProvider()
+            );
+            
+            pm.addIQProvider("query",
+                    "http://jabber.org/protocol/disco#info",
+                    new org.jivesoftware.smackx.provider.DiscoverInfoProvider());
+            
+            pm.addIQProvider("pubsub",
+                    "http://jabber.org/protocol/pubsub",
+                    new org.jivesoftware.smackx.pubsub.provider.PubSubProvider());
+
+            pm.addExtensionProvider("subscription", PubSubNamespace.BASIC.getXmlns() , new SubscriptionProvider());
+            
+            pm.addExtensionProvider(
+                    "create",
+                    "http://jabber.org/protocol/pubsub",
+                    new org.jivesoftware.smackx.pubsub.provider.SimpleNodeProvider());
+            
+            pm.addExtensionProvider("items",
+                    "http://jabber.org/protocol/pubsub",
+                    new org.jivesoftware.smackx.pubsub.provider.ItemsProvider());
+            
+            pm.addExtensionProvider("item",
+                    "http://jabber.org/protocol/pubsub",
+                    new org.jivesoftware.smackx.pubsub.provider.ItemProvider());
+            
+            pm.addExtensionProvider("item", "",
+                    new org.jivesoftware.smackx.pubsub.provider.ItemProvider());
+            
+            pm.addExtensionProvider(
+                            "subscriptions",
+                            "http://jabber.org/protocol/pubsub",
+                            new org.jivesoftware.smackx.pubsub.provider.SubscriptionsProvider());
+
+            pm.addExtensionProvider(
+                            "subscriptions",
+                            "http://jabber.org/protocol/pubsub#owner",
+                            new org.jivesoftware.smackx.pubsub.provider.SubscriptionsProvider());
+
+            pm.addExtensionProvider(
+                            "affiliations",
+                            "http://jabber.org/protocol/pubsub",
+                            new org.jivesoftware.smackx.pubsub.provider.AffiliationsProvider());
+            
+            pm.addExtensionProvider(
+                            "affiliation",
+                            "http://jabber.org/protocol/pubsub",
+                            new org.jivesoftware.smackx.pubsub.provider.AffiliationProvider());
+            
+            pm.addExtensionProvider("options",
+                    "http://jabber.org/protocol/pubsub",
+                    new org.jivesoftware.smackx.pubsub.provider.FormNodeProvider());
+            
+            pm.addIQProvider("pubsub",
+                    "http://jabber.org/protocol/pubsub#owner",
+                    new org.jivesoftware.smackx.pubsub.provider.PubSubProvider());
+            
+            pm.addExtensionProvider("configure",
+                    "http://jabber.org/protocol/pubsub#owner",
+                    new org.jivesoftware.smackx.pubsub.provider.FormNodeProvider());
+            
+            pm.addExtensionProvider("default",
+                    "http://jabber.org/protocol/pubsub#owner",
+                    new org.jivesoftware.smackx.pubsub.provider.FormNodeProvider());
+
+
+            pm.addExtensionProvider("event",
+                    "http://jabber.org/protocol/pubsub#event",
+                    new org.jivesoftware.smackx.pubsub.provider.EventProvider());
+            
+            pm.addExtensionProvider(
+                            "configuration",
+                            "http://jabber.org/protocol/pubsub#event",
+                            new org.jivesoftware.smackx.pubsub.provider.ConfigEventProvider());
+            
+            pm.addExtensionProvider(
+                            "delete",
+                            "http://jabber.org/protocol/pubsub#event",
+                            new org.jivesoftware.smackx.pubsub.provider.SimpleNodeProvider());
+            
+            pm.addExtensionProvider("options",
+                    "http://jabber.org/protocol/pubsub#event",
+                    new org.jivesoftware.smackx.pubsub.provider.FormNodeProvider());
+            
+            pm.addExtensionProvider("items",
+                    "http://jabber.org/protocol/pubsub#event",
+                    new org.jivesoftware.smackx.pubsub.provider.ItemsProvider());
+            
+            pm.addExtensionProvider("item",
+                    "http://jabber.org/protocol/pubsub#event",
+                    new org.jivesoftware.smackx.pubsub.provider.ItemProvider());
+
+            pm.addExtensionProvider("headers",
+                    "http://jabber.org/protocol/shim",
+                    new org.jivesoftware.smackx.provider.HeaderProvider());
+
+            pm.addExtensionProvider("header",
+                    "http://jabber.org/protocol/shim",
+                    new org.jivesoftware.smackx.provider.HeadersProvider());
+            
+            
+            pm.addExtensionProvider(
+                            "retract",
+                            "http://jabber.org/protocol/pubsub#event",
+                            new org.jivesoftware.smackx.pubsub.provider.RetractEventProvider());
+            
+            pm.addExtensionProvider(
+                            "purge",
+                            "http://jabber.org/protocol/pubsub#event",
+                            new org.jivesoftware.smackx.pubsub.provider.SimpleNodeProvider());
+            
+            pm.addExtensionProvider(
+                    "x",
+                    "jabber:x:data",
+                    new org.jivesoftware.smackx.provider.DataFormProvider());
+
+            SmackConfiguration.setKeepAliveInterval(-1);
+     
+	
+	}
 	
 }
