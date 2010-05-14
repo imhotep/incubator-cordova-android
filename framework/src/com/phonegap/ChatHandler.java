@@ -155,7 +155,7 @@ public class ChatHandler {
 		{
 			if(mConn != null)
 			{
-				mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidConnect()");
+				mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidConnect('" + config.getHost() + "');");
 				mChatManager = mConn.getChatManager();
 				setupListeners();
 				setupRosterListener();
@@ -204,12 +204,11 @@ public class ChatHandler {
                 		while(it.hasNext())
                 		{
                 			//Send the XHTML to Javascript
+                			//mView.loadUrl("javascript:navigator.xmppClient._didReceiveHtmlMessage('" + + "');");
                 		}
                 	}
                 	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message + "','" + origin 
-                			+ "','" + message.getPacketID() + "');");
-                    mView.loadUrl("javascript:alert('" + message.getBody() + "');");
-                	getRoster();
+                			+ "','" + message.getPacketID() + "');");           
                 }
 				
 			}
