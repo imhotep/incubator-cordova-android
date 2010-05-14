@@ -33,6 +33,8 @@ function XMPPClient()
 	this.unreadCount = 0;
   this.subs = {};
   this.fileListeners = {};
+  this.services = [];
+  this.server = "";
 }
 
 // username, password, domain are required
@@ -98,9 +100,10 @@ XMPPClient.prototype._xmppClientConnecting = function()
 	this.broadcastEvent("Connecting");
 }
 
-XMPPClient.prototype._xmppClientDidConnect = function()
+XMPPClient.prototype._xmppClientDidConnect = function(hostname)
 {
-	this.broadcastEvent("ConnectSuccess");
+  this.hostname = hostname;  
+  this.broadcastEvent("ConnectSuccess");
 }
 
 XMPPClient.prototype._xmppClientDidNotConnect = function()

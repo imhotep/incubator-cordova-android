@@ -99,12 +99,12 @@ public class ChatHandler {
 	Roster mRoster = null;
 	ChatManager mChatManager = null;
 	HashMap<String, Chat> openChat;
+	HashMap<String, ItemEventListener> mSubs;
 	boolean debug = false;
 	ServiceDiscoveryManager discoStu;
 	PubSubManager mPubSubMan;
 	FileTransferManager mFileMan;
 	String mJid;
-	ItemEventListener mItemEventListener;
 
 	WebView mView;
 	Context mCtx;
@@ -114,6 +114,7 @@ public class ChatHandler {
 		mView = view;
 		mCtx = ctx;
 		openChat = new HashMap<String,Chat>();
+		mSubs = new HashMap<String, ItemEventListener>();
 		mPm = ProviderManager.getInstance();
 		configure(mPm);
 	}
@@ -205,7 +206,7 @@ public class ChatHandler {
                 			//Send the XHTML to Javascript
                 		}
                 	}
-                	mView.loadUrl("javascript:navigator.xmppclient._didReceiveMessage('" + message + "','" + origin 
+                	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message + "','" + origin 
                 			+ "','" + message.getPacketID() + "');");
                     mView.loadUrl("javascript:alert('" + message.getBody() + "');");
                 	getRoster();
@@ -284,26 +285,27 @@ public class ChatHandler {
 			Node eventNode = mPubSubMan.getNode(node);
 			if(eventNode != null)
 			{
-				eventNode.addItemEventListener( 
-						new ItemEventListener() {
-
-							public void handlePublishedItems(ItemPublishEvent items) {
-								Iterator it = (Iterator) items.getItems();
-								while(it.hasNext())
-								{
-									Item i = (Item) it.next();
-									String node = i.toXML();
-									mView.loadUrl("javascript:navigator.xmppclient._xmppRecvSub('" + node + "','" + event_key + "');");
-								}
-							}
+				ItemEventListener sub = new ItemEventListener() {
+					public void handlePublishedItems(ItemPublishEvent items) {
+						Iterator it = (Iterator) items.getItems();
+						while(it.hasNext())
+						{
+							Item i = (Item) it.next();
+							String node = i.toXML();
+							mView.loadUrl("javascript:navigator.xmppClient._xmppRecvSub('" + node + "','" + event_key + "');");
 						}
-				);
+					}
+				};
+				
+				mSubs.put(event_key, sub);
+				
+				eventNode.addItemEventListener(sub);
 				// My JID
 
 				eventNode.subscribe(mJid);
 			}
 		} catch (XMPPException e) {
-			mView.loadUrl("javascript:navigator.xmppclient._xmppSubFail()");
+			mView.loadUrl("javascript:navigator.xmppClient._xmppSubFail()");
 		}
 		
 	}
@@ -505,18 +507,16 @@ public class ChatHandler {
 		Chat chat = openChat.get(person);
 		if(chat == null)
 			chat = setupChat(person);
+		Message msg = new Message();
+		msg.setBody(plaintext);
+
+		XHTMLManager.addBody(msg, htmlMessage);
 		try {
-			Message msg = new Message();
-			msg.setBody(plaintext);
-			if (XHTMLManager.isServiceEnabled(mConn, chat.getParticipant()))
-			{
-				XHTMLManager.addBody(msg, htmlMessage);
-			}
-			chat.sendMessage(msg);			
+			chat.sendMessage(msg);
 		} catch (XMPPException e) {
-			mView.loadUrl("javascript:navigator.xmppClient._didReceiveError()");
+			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}			
 	}
 	
 	/*
@@ -542,9 +542,10 @@ public class ChatHandler {
 				DiscoverItems.Item item = (DiscoverItems.Item) it.next();
 				String params = item.getEntityID() + "','" + item.getNode() + "','" + item.getName();
 				// Take this data, and send it to a collector
+				mView.loadUrl("javascript:navigator.xmppClient.addService('" + params + "');");
 			}
 		} catch (XMPPException e) {
-			// Discovery failed, call JS Fail
+			// Discovery failed, call JS Fail:
 		}
 		
 	}
