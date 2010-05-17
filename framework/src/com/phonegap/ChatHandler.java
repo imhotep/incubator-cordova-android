@@ -204,10 +204,10 @@ public class ChatHandler {
                 		while(it.hasNext())
                 		{
                 			//Send the XHTML to Javascript
-                			//mView.loadUrl("javascript:navigator.xmppClient._didReceiveHtmlMessage('" + + "');");
+                			//mView.loadUrl("javascript:navigator.xmppClient._didReceiveHtmlMessage('" ');");
                 		}
                 	}
-                	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message + "','" + origin 
+                	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message.getBody() + "','" + origin 
                 			+ "','" + message.getPacketID() + "');");           
                 }
 				
@@ -467,7 +467,8 @@ public class ChatHandler {
 			}
 			
 		};
-		mRoster.addRosterListener(rListen);
+		if (mRoster != null)
+			mRoster.addRosterListener(rListen);
 	}
 	
 	public Chat setupChat(final String person)

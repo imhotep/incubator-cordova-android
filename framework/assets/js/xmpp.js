@@ -13,6 +13,20 @@ function XMPPMessage(id,body,senderJid,receiverJid,isread,timeStamp)
 	this.timeStamp = (timeStamp &&  timeStamp.constructor == Date ) ? timeStamp : new Date();
 }
 
+function XmppHtmlMessage(id, body, htmlbody, senderJid, receiverJid, isRead, timeStamp)
+{
+  this.id = id;
+  this.body = body;
+  this.htmlBody = htmlbody;
+  this.senderJid = senderJid;
+  this.receiverJid = receiverJid;
+  this.isread = isread ? true : false;
+
+  this.timeStamp = (timeStamp &&  timeStamp.constructor == Date ) ? timeStamp : new Date();
+
+}
+
+
 XmppResource = function(name, user, status)
 {
   this.name = name;
@@ -88,6 +102,11 @@ XMPPClient.prototype.addFileTransferListener(method, prompt, message)
 XMPPClient.prototype._xmppServiceFound = function(entityId, node, name)
 {
 
+}
+
+XMPPClient.prototype._xmppDiscoveryWin = function()
+{
+  this.broadcastEvent('DiscoveryWin');
 }
 
 XMPPClient.prototype._xmppDiscoveryFail = function(err)
@@ -212,6 +231,33 @@ XMPPClient.prototype._didReceiveMessage = function(msg,senderJid,messageId,timeS
 	this.broadcastEvent("MessageReceived",senderName,message);
 }
 
+
+XMPPClient.prototype._didRecieveHtmlMessage = function(msg, htmlMessage, senderJid, messageId, timeStamp)
+{
+  var senderName = senderJid.split('@')[0];
+
+  if(timeStamp != null && timeStamp.length > )
+  {
+    ts = XMPPClient.parseXMPPDate(timeStamp);
+  }
+  else
+  {
+    ts = new Date();
+  }
+
+  var message = new XmppHtmlMessage(messageId, unescape(msg), htmlMessage, senderJid, "", "", false, ts);
+
+  if(this.messageMap[senderName] == null)
+  {
+    this.messageMap[senderName] = [];
+  }
+
+  this.messageMap[sendername].push(message);
+  this.unreadCount++;
+
+  this.broadcastEvent("HtmlMessageReceived", senderName, message, htmlMessage);
+
+}
 
 
 XMPPClient.prototype._didReceiveError = function(err)
