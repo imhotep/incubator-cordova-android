@@ -2,7 +2,7 @@
 
 ////////////////////////////////////// XMPPMessage //////////////////////////////////////////
 
-function XMPPMessage(id,body,senderJid,receiverJid,isread,timeStamp)
+function XMPPMessage(id,body,senderJid,receiverJid,isread,timeStamp, html)
 {
 	this.id = id;
 	this.body = body;
@@ -10,22 +10,17 @@ function XMPPMessage(id,body,senderJid,receiverJid,isread,timeStamp)
 	this.receiverJid = receiverJid;
 	this.isread = isread ? true : false;
 
+  this.html = html ? true : false;
 	this.timeStamp = (timeStamp &&  timeStamp.constructor == Date ) ? timeStamp : new Date();
 }
 
-function XmppHtmlMessage(id, body, htmlbody, senderJid, receiverJid, isRead, timeStamp)
+
+XmppService = function(entityId, node, name)
 {
-  this.id = id;
-  this.body = body;
-  this.htmlBody = htmlbody;
-  this.senderJid = senderJid;
-  this.receiverJid = receiverJid;
-  this.isread = isread ? true : false;
-
-  this.timeStamp = (timeStamp &&  timeStamp.constructor == Date ) ? timeStamp : new Date();
-
+  this.name = name;
+  this.node = node;
+  this.entityId = entityId;
 }
-
 
 XmppResource = function(name, user, status)
 {
@@ -53,9 +48,9 @@ function XMPPClient()
 
 // username, password, domain are required
 // resource and port are optional
-XMPPClient.prototype.connect = function(username,password,domain,resource,port)
+XMPPClient.prototype.connect = function(domain, username,password,resource,port)
 {
-	XmppHook.connect(username, password, domain, resource, port);
+	XmppHook.connect(domain, username, password, resource, port);
 }
 
 XMPPClient.prototype.sendMessageToJID = function(jid,message)
@@ -93,15 +88,16 @@ XMPPClient.prototype.sendFile = function(file, user, message)
   XmppHook.sendFile(file, user, message);
 }
 
-XMPPClient.prototype.addFileTransferListener(method, prompt, message)
+XMPPClient.prototype.addFileTransferListener = function(method, prompt, message)
 {
   this.fileListeners[method.name()] = method;
-  XmppHook.addFileTrasferListener(method.name(), prompt, message);
+  XmppHook.addFileTransferListener(method.name(), prompt, message);
 }
 
 XMPPClient.prototype._xmppServiceFound = function(entityId, node, name)
 {
-
+  var service = new XmppService(entityId, node, name);
+  this.services.push(service);
 }
 
 XMPPClient.prototype._xmppDiscoveryWin = function()
@@ -158,7 +154,6 @@ XMPPClient.prototype._addToRoster = function(name, user, status)
 
 XMPPClient.prototype._xmppClientDidUpdateRoster = function()
 {
-	this.roster = _roster;
 	this.broadcastEvent("UpdateRoster",this.roster);
 }
 
@@ -232,7 +227,7 @@ XMPPClient.prototype._didReceiveMessage = function(msg,senderJid,messageId,timeS
 }
 
 
-XMPPClient.prototype._didRecieveHtmlMessage = function(msg, htmlMessage, senderJid, messageId, timeStamp)
+XMPPClient.prototype._didRecieveHtmlMessage = function(msg, senderJid, messageId, timeStamp)
 {
   var senderName = senderJid.split('@')[0];
 
@@ -245,7 +240,7 @@ XMPPClient.prototype._didRecieveHtmlMessage = function(msg, htmlMessage, senderJ
     ts = new Date();
   }
 
-  var message = new XmppHtmlMessage(messageId, unescape(msg), htmlMessage, senderJid, "", "", false, ts);
+  var message = new XmppMessage(messageId, unescape(msg), senderJid, "", "", false, ts, true);
 
   if(this.messageMap[senderName] == null)
   {
@@ -255,7 +250,7 @@ XMPPClient.prototype._didRecieveHtmlMessage = function(msg, htmlMessage, senderJ
   this.messageMap[sendername].push(message);
   this.unreadCount++;
 
-  this.broadcastEvent("HtmlMessageReceived", senderName, message, htmlMessage);
+  this.broadcastEvent("HtmlMessageReceived", senderName, message);
 
 }
 

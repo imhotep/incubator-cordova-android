@@ -203,8 +203,10 @@ public class ChatHandler {
                 	{
                 		while(it.hasNext())
                 		{
+                			String body = (String) it.next();
                 			//Send the XHTML to Javascript
-                			//mView.loadUrl("javascript:navigator.xmppClient._didReceiveHtmlMessage('" ');");
+                			mView.loadUrl("javascript:navigator.xmppClient._didReceiveHtmlMessage('" + body +"',' + " + origin 
+                					+ "','" + message.getPacketID() + ");");	
                 		}
                 	}
                 	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message.getBody() + "','" + origin 
@@ -426,6 +428,7 @@ public class ChatHandler {
 				String status = entry.getStatus().toString();
 				mView.loadUrl("javascript:navigator.xmppClient._addToRoster('" + name + "','"+ user + "','" + status + "');");
 			}
+			mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidUpdateRoster()");
 		}
 	}
 	
@@ -467,8 +470,6 @@ public class ChatHandler {
 			}
 			
 		};
-		if (mRoster != null)
-			mRoster.addRosterListener(rListen);
 	}
 	
 	public Chat setupChat(final String person)
@@ -527,6 +528,7 @@ public class ChatHandler {
 	
 	public void discoverServices(String resource)
 	{
+		boolean fail = false;
 		if(discoStu == null)
 		{
 			//Disco Stu is coming back baby!!!!
@@ -542,11 +544,15 @@ public class ChatHandler {
 				DiscoverItems.Item item = (DiscoverItems.Item) it.next();
 				String params = item.getEntityID() + "','" + item.getNode() + "','" + item.getName();
 				// Take this data, and send it to a collector
-				mView.loadUrl("javascript:navigator.xmppClient.addService('" + params + "');");
+				mView.loadUrl("javascript:navigator.xmppClient._xmppServiceFound('" + params + "');");
 			}
+			mView.loadUrl("javascript:navigator.xmppClient._xmppDiscoveryWin()");
 		} catch (XMPPException e) {
 			// Discovery failed, call JS Fail:
+			mView.loadUrl("javascript:navigator.xmppClient._xmppDiscoveyrFail(" + e.getMessage() + ")");
+			fail = true;
 		}
+
 		
 	}
 	
