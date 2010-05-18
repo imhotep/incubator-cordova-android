@@ -195,8 +195,9 @@ public class ChatHandler {
 				String origin = message.getFrom().split("/")[0];
 				Chat chat = openChat.get(origin);
 				if(chat == null)
-					setupChat(message.getFrom());				
-                if (message.getBody() != null) {
+					setupChat(message.getFrom());
+				if (XHTMLManager.isXHTMLMessage(message))
+				{
                 	//Check for XHTML
                 	Iterator it = XHTMLManager.getBodies(message);
                 	if (it != null)
@@ -208,7 +209,9 @@ public class ChatHandler {
                 			mView.loadUrl("javascript:navigator.xmppClient._didReceiveHtmlMessage('" + body +"',' + " + origin 
                 					+ "','" + message.getPacketID() + ");");	
                 		}
-                	}
+                	}				
+				}
+                if (message.getBody() != null) {
                 	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message.getBody() + "','" + origin 
                 			+ "','" + message.getPacketID() + "');");           
                 }
@@ -425,7 +428,10 @@ public class ChatHandler {
 				//Most likely to the EventBroadcaster
 				String name = entry.getName();
 				String user = entry.getUser();
-				String status = entry.getStatus().toString();
+				ItemStatus entry_status = entry.getStatus();
+				String status = "unknown";
+				if(entry_status != null)
+					status = entry_status.toString();
 				mView.loadUrl("javascript:navigator.xmppClient._addToRoster('" + name + "','"+ user + "','" + status + "');");
 			}
 			mView.loadUrl("javascript:navigator.xmppClient._xmppClientDidUpdateRoster()");
