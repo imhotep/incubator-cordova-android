@@ -175,7 +175,10 @@ public class ChatHandler {
 		discoStu.addFeature("jabber:x:data");
 		discoStu.addFeature("http://jabber.org/protocol/disco#info");
 		discoStu.addFeature("jabber:iq:privacy");
-	}
+		discoStu.addFeature("http://jabber.org/protocol/si");
+		discoStu.addFeature("http://jabber.org/protocol/bytestreams");
+		discoStu.addFeature("http://jabber.org/protocol/ibb");
+ 	}
 
 	/*
 	 * This handles the chat listener.  We can't simply listen to chats for some reason, and intead have to grab the chats
@@ -321,7 +324,9 @@ public class ChatHandler {
 		
 		OutgoingFileTransfer trans = mFileMan.createOutgoingFileTransfer(jid);
 		try {
+			
 			trans.sendFile(new File(file), message);
+			
 		} catch (XMPPException e) {			
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -333,8 +338,8 @@ public class ChatHandler {
 		if (mFileMan == null)
 			 mFileMan = new FileTransferManager(mConn);
 		
-		  // Create the listener
-	      mFileMan.addFileTransferListener(new FileTransferListener() {
+		// Create the listener
+	    mFileMan.addFileTransferListener(new FileTransferListener() {
 	            public void fileTransferRequest(FileTransferRequest request) {
 	                  // Check to see if the request should be accepted
 	                  if(prompt)
@@ -556,7 +561,7 @@ public class ChatHandler {
 			mView.loadUrl("javascript:navigator.xmppClient._xmppDiscoveryWin()");
 		} catch (XMPPException e) {
 			// Discovery failed, call JS Fail:
-			mView.loadUrl("javascript:navigator.xmppClient._xmppDiscoveyrFail(" + e.getMessage() + ")");
+			mView.loadUrl("javascript:navigator.xmppClient._xmppDiscoveryFail(" + e.getMessage() + ")");
 			fail = true;
 		}
 

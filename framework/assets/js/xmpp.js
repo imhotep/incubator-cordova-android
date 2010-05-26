@@ -41,7 +41,7 @@ function XMPPClient()
 	this.messageMap = {};
 	this.unreadCount = 0;
   this.subs = {};
-  this.fileListeners = {};
+  this.fileListeners = [];
   this.services = [];
   this.server = "";
 }
@@ -89,9 +89,10 @@ XMPPClient.prototype.sendFile = function(file, user, message)
 }
 
 XMPPClient.prototype.addFileTransferListener = function(method, location, prompt, message)
-{
-  this.fileListeners[method.name()] = method;
-  XmppHook.addFileTransferListener(method.name(), prompt, message);
+{ 
+  this.fileListeners.push(method);
+  var key = (this.fileListeners.length - 1).toString;
+  XmppHook.addFileTransferListener(key, prompt, message);
 }
 
 XMPPClient.prototype._xmppServiceFound = function(entityId, node, name)
