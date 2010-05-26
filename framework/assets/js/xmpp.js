@@ -15,7 +15,7 @@ function XMPPMessage(id,body,senderJid,receiverJid,isread,timeStamp, html)
 }
 
 
-XmppService = function(entityId, node, name)
+RosterItem = function(entityId, node, name)
 {
   this.name = name;
   this.node = node;
@@ -88,7 +88,7 @@ XMPPClient.prototype.sendFile = function(file, user, message)
   XmppHook.sendFile(file, user, message);
 }
 
-XMPPClient.prototype.addFileTransferListener = function(method, prompt, message)
+XMPPClient.prototype.addFileTransferListener = function(method, location, prompt, message)
 {
   this.fileListeners[method.name()] = method;
   XmppHook.addFileTransferListener(method.name(), prompt, message);
@@ -231,7 +231,7 @@ XMPPClient.prototype._didRecieveHtmlMessage = function(msg, senderJid, messageId
 {
   var senderName = senderJid.split('@')[0];
 
-  if(timeStamp != null && timeStamp.length > )
+  if(timeStamp != null && timeStamp.length > 0)
   {
     ts = XMPPClient.parseXMPPDate(timeStamp);
   }

@@ -322,13 +322,13 @@ public class ChatHandler {
 		OutgoingFileTransfer trans = mFileMan.createOutgoingFileTransfer(jid);
 		try {
 			trans.sendFile(new File(file), message);
-		} catch (XMPPException e) {
+		} catch (XMPPException e) {			
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
 	}
 	
-	public void addFileTransferListener(String eventId, final boolean prompt, final String message)
+	public void addFileTransferListener(final String eventId, final String directory, final boolean prompt, final String message)
 	{
 		if (mFileMan == null)
 			 mFileMan = new FileTransferManager(mConn);
@@ -345,7 +345,8 @@ public class ChatHandler {
 	                  {
 	                        IncomingFileTransfer transfer = request.accept();
 	                        try {
-								transfer.recieveFile(new File(request.getFileName()));
+								transfer.recieveFile(new File( directory + request.getFileName()));
+								mView.loadUrl("javascript:document.xmppClient.fileListeners['" + eventId + "]();");
 							} catch (XMPPException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
