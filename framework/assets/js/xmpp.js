@@ -15,14 +15,14 @@ function XMPPMessage(id,body,senderJid,receiverJid,isread,timeStamp, html)
 }
 
 
-RosterItem = function(entityId, node, name)
+XmppService = function(entityId, node, name)
 {
   this.name = name;
   this.node = node;
   this.entityId = entityId;
 }
 
-XmppResource = function(name, user, status)
+RosterItem = function(name, user, status)
 {
   this.name = name;
   this.user = user;
