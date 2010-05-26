@@ -203,6 +203,7 @@ public class ChatHandler {
 				{
                 	//Check for XHTML
                 	Iterator it = XHTMLManager.getBodies(message);
+                	
                 	if (it != null)
                 	{
                 		while(it.hasNext())
