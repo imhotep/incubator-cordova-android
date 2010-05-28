@@ -228,7 +228,7 @@ XMPPClient.prototype._didReceiveMessage = function(msg,senderJid,messageId,timeS
 }
 
 
-XMPPClient.prototype._didRecieveHtmlMessage = function(msg, senderJid, messageId, timeStamp)
+XMPPClient.prototype._didReceiveHtmlMessage = function(msg, senderJid, messageId, timeStamp)
 {
   var senderName = senderJid.split('@')[0];
 

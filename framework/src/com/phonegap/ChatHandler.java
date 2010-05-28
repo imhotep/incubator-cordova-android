@@ -1,19 +1,22 @@
 package com.phonegap;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
-import org.jivesoftware.smack.ConnectionListener;
 import org.jivesoftware.smack.MessageListener;
-import org.jivesoftware.smack.PacketCollector;
 import org.jivesoftware.smack.PacketListener;
 import org.jivesoftware.smack.Roster;
 import org.jivesoftware.smack.RosterEntry;
@@ -24,8 +27,6 @@ import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.filter.MessageTypeFilter;
 import org.jivesoftware.smack.filter.PacketFilter;
-import org.jivesoftware.smack.filter.PacketIDFilter;
-import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.Presence;
@@ -82,9 +83,10 @@ import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
 import org.jivesoftware.smackx.pubsub.packet.PubSubNamespace;
 import org.jivesoftware.smackx.pubsub.provider.SubscriptionProvider;
 import org.jivesoftware.smackx.search.UserSearch;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
-import com.phonegap.DroidGap.GapClient.GapCancelDialog;
-import com.phonegap.DroidGap.GapClient.GapOKDialog;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -201,19 +203,20 @@ public class ChatHandler {
 					setupChat(message.getFrom());
 				if (XHTMLManager.isXHTMLMessage(message))
 				{
-                	//Check for XHTML
-                	Iterator it = XHTMLManager.getBodies(message);
-                	
-                	if (it != null)
-                	{
-                		while(it.hasNext())
-                		{
-                			String body = (String) it.next();
-                			//Send the XHTML to Javascript
-                			mView.loadUrl("javascript:navigator.xmppClient._didReceiveHtmlMessage('" + body +"',' + " + origin 
-                					+ "','" + message.getPacketID() + ");");	
-                		}
-                	}				
+					String xmlMessage = message.toXML();
+					Log.d("XMPPTest", xmlMessage);
+															
+					//Let's do this quick and dirty.
+					int start = xmlMessage.indexOf("<body xmlns");
+					int end = xmlMessage.indexOf("</html>");
+					if (start > 0 && end > 0)
+					{
+						String data = URLEncoder.encode(xmlMessage.substring(start, end));
+						String cmd = "javascript:navigator.xmppClient._didReceiveHtmlMessage('" + data + "','" + origin 
+									+ "','" + message.getPacketID() + "');";
+						mView.loadUrl(cmd);
+					}			
+                			
 				}
                 if (message.getBody() != null) {
                 	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message.getBody() + "','" + origin 
