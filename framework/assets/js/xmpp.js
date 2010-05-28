@@ -241,14 +241,15 @@ XMPPClient.prototype._didReceiveHtmlMessage = function(msg, senderJid, messageId
     ts = new Date();
   }
 
-  var message = new XmppMessage(messageId, unescape(msg), senderJid, "", "", false, ts, true);
+  var proper_html = unescape(msg).replace("+", " ");
+  var message = new XMPPMessage(messageId,proper_html,senderJid,"","",false,ts, true);
 
   if(this.messageMap[senderName] == null)
   {
     this.messageMap[senderName] = [];
   }
 
-  this.messageMap[sendername].push(message);
+  this.messageMap[senderName].push(message);
   this.unreadCount++;
 
   this.broadcastEvent("HtmlMessageReceived", senderName, message);
