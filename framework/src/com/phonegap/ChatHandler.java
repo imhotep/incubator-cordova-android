@@ -1,10 +1,6 @@
 package com.phonegap;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +38,7 @@ import org.jivesoftware.smackx.ServiceDiscoveryManager;
 import org.jivesoftware.smackx.XHTMLManager;
 import org.jivesoftware.smackx.filetransfer.FileTransferListener;
 import org.jivesoftware.smackx.filetransfer.FileTransferManager;
+import org.jivesoftware.smackx.filetransfer.FileTransferNegotiator;
 import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
 import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
 import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
@@ -83,9 +80,7 @@ import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
 import org.jivesoftware.smackx.pubsub.packet.PubSubNamespace;
 import org.jivesoftware.smackx.pubsub.provider.SubscriptionProvider;
 import org.jivesoftware.smackx.search.UserSearch;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+
 
 
 import android.app.AlertDialog;
@@ -325,11 +320,17 @@ public class ChatHandler {
 	{
 		if (mFileMan == null)
 		 mFileMan = new FileTransferManager(mConn);
+		FileTransferNegotiator.setServiceEnabled(mConn, true);
 		
 		OutgoingFileTransfer trans = mFileMan.createOutgoingFileTransfer(jid);
 		try {
-			
-			trans.sendFile(new File(file), message);
+			File source = new File(file);
+			if (source.exists())
+				trans.sendFile(source, message);
+			else
+			{
+				//TODO: Add FileNotFound Exception throwing back to WebView
+			}
 			
 		} catch (XMPPException e) {			
 			// TODO Auto-generated catch block
@@ -345,6 +346,7 @@ public class ChatHandler {
 		// Create the listener
 	    mFileMan.addFileTransferListener(new FileTransferListener() {
 	            public void fileTransferRequest(FileTransferRequest request) {
+	            	  FileTransferNegotiator.setServiceEnabled(mConn, true);
 	                  // Check to see if the request should be accepted
 	                  if(prompt)
 	                  {
@@ -796,10 +798,7 @@ public class ChatHandler {
                             "http://jabber.org/protocol/pubsub#event",
                             new org.jivesoftware.smackx.pubsub.provider.SimpleNodeProvider());
             
-            pm.addExtensionProvider(
-                    "x",
-                    "jabber:x:data",
-                    new org.jivesoftware.smackx.provider.DataFormProvider());
+         
 
             SmackConfiguration.setKeepAliveInterval(-1);
      
