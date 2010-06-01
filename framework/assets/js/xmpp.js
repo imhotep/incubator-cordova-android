@@ -88,11 +88,14 @@ XMPPClient.prototype.sendFile = function(file, user, message)
   XmppHook.sendFile(file, user, message);
 }
 
-XMPPClient.prototype.addFileTransferListener = function(method, location, prompt, message)
+XMPPClient.prototype.enableFileTransfer = function(location, prompt)
 { 
-  this.fileListeners.push(method);
-  var key = (this.fileListeners.length - 1).toString;
-  XmppHook.addFileTransferListener(key, prompt, message);
+  XmppHook.enableTransfer(location, prompt);
+}
+
+XMPPClient.prototype.confirmTransfer = function(boolean)
+{
+  XmppHook.confirmTransfer(boolean);
 }
 
 XMPPClient.prototype._xmppServiceFound = function(entityId, node, name)
@@ -179,6 +182,20 @@ XMPPClient.prototype._didReceiveIQ = function _didReceiveIQ()
 	this.broadcastEvent("IQReceived");
 }
 
+XMPPClient.prototype._didReceiveFileRequest = function()
+{
+	this.broadcastEvent("XmppFileRequest");
+}
+
+XMPPClient.prototype._didReceiveFile = function(filename)
+{
+	this.broadcastEvent("XmppFileReceived", filename);
+}
+
+XMPPClient.prototype._fileError = function(){
+	this.broadcastEvent("XmppFileError");
+	this._didReceiveError();
+}
 
 // parses date from XEP-0082 
 // Date string is UTC time and formatted as CCYYMMDDThh:mm:ss

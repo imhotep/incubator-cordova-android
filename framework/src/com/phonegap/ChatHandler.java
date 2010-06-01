@@ -101,6 +101,7 @@ public class ChatHandler {
 	ServiceDiscoveryManager discoStu;
 	PubSubManager mPubSubMan;
 	FileTransferManager mFileMan;
+	GapTransferListener mFileListener;
 	String mJid;
 
 	WebView mView;
@@ -338,96 +339,38 @@ public class ChatHandler {
 		} 
 	}
 	
-	public void addFileTransferListener(final String eventId, final String directory, final boolean prompt, final String message)
+	
+	public void enableTransfer(final String directory, final boolean prompt)
 	{
-		if (mFileMan == null)
-			 mFileMan = new FileTransferManager(mConn);
-		
+				
 		// Create the listener
-	    mFileMan.addFileTransferListener(new FileTransferListener() {
-	            public void fileTransferRequest(FileTransferRequest request) {
-	            	  FileTransferNegotiator.setServiceEnabled(mConn, true);
-	                  // Check to see if the request should be accepted
-	                  if(prompt)
-	                  {
-	                	  promptUser(request, message);
-	                  }
-	                  else
-	                  {
-	                        IncomingFileTransfer transfer = request.accept();
-	                        try {
-								transfer.recieveFile(new File( directory + request.getFileName()));
-								mView.loadUrl("javascript:document.xmppClient.fileListeners['" + eventId + "]();");
-							} catch (XMPPException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							finally
-							{
-								
-							}
-	                  }
-	            }
-	      });
-
+		mFileListener = new GapTransferListener(mConn, mView, prompt, directory);
+		
+        if (mFileMan == null)
+    	{
+    		 mFileMan = new FileTransferManager(mConn);
+    		 mFileMan.addFileTransferListener(mFileListener);
+    	}
 	}
 	
-	private void promptUser(FileTransferRequest request, String message)
+	public void confirmTransfer(boolean accept)
 	{
-        // This shows the dialog box.  This can be commented out for dev
-        AlertDialog.Builder alertBldr = new AlertDialog.Builder(mCtx);
-        FileOKDialog okHook = new FileOKDialog(request);
-        FileCancelDialog cancelHook = new FileCancelDialog(request);
-        alertBldr.setMessage(message);
-        alertBldr.setTitle("Alert");
-        alertBldr.setCancelable(true);
-        alertBldr.setPositiveButton("OK", okHook);
-        alertBldr.setNegativeButton("Cancel", cancelHook);
-        alertBldr.show();
-	}
-	
-	/*
-	 * This is the Code for the OK Button
-	 */
-	
-	public class FileOKDialog implements DialogInterface.OnClickListener {
-		
-		FileTransferRequest mRequest;
-		
-		FileOKDialog(FileTransferRequest request)
+		if(mFileListener != null)
 		{
-			mRequest = request;
-		}
-		
-		public void onClick(DialogInterface dialog, int which) {
-            IncomingFileTransfer transfer = mRequest.accept();
-            try {
-				transfer.recieveFile(new File(mRequest.getFileName()));
-			} catch (XMPPException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if (accept)
+			{
+				try {
+					String path = mFileListener.receiveFile();
+					mView.loadUrl("javascript:document.xmppClient._didReceiveFile('" + path + "')");
+				} catch (XMPPException e) {
+					mView.loadUrl("javascript:document.xmppClient._fileError()");
+				}
 			}
-			
-			dialog.dismiss();
-		}			
-	
-	}
-	
-	public class FileCancelDialog implements DialogInterface.OnClickListener {
-		
-		FileTransferRequest mRequest;
-		
-		FileCancelDialog(FileTransferRequest request)
-		{
-			mRequest = request;
+			else
+			{
+				mFileListener.rejectFile();
+			}
 		}
-		
-		
-		public void onClick(DialogInterface dialog, int which) {
-			mRequest.reject();
-			dialog.dismiss();
-		}			
-	
 	}
 	
 	public void getRoster()
