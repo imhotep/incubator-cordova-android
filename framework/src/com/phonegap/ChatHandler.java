@@ -23,6 +23,7 @@ import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.filter.MessageTypeFilter;
 import org.jivesoftware.smack.filter.PacketFilter;
+import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.Presence;
@@ -31,6 +32,8 @@ import org.jivesoftware.smack.provider.PrivacyProvider;
 import org.jivesoftware.smack.provider.ProviderManager;
 
 
+import org.jivesoftware.smackx.Form;
+import org.jivesoftware.smackx.FormField;
 import org.jivesoftware.smackx.GroupChatInvitation;
 import org.jivesoftware.smackx.NodeInformationProvider;
 import org.jivesoftware.smackx.PrivateDataManager;
@@ -41,6 +44,7 @@ import org.jivesoftware.smackx.filetransfer.FileTransferNegotiator;
 import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
 import org.jivesoftware.smackx.muc.MultiUserChat;
 import org.jivesoftware.smackx.packet.ChatStateExtension;
+import org.jivesoftware.smackx.packet.DataForm;
 import org.jivesoftware.smackx.packet.DiscoverItems;
 import org.jivesoftware.smackx.packet.LastActivity;
 import org.jivesoftware.smackx.packet.OfflineMessageInfo;
@@ -77,6 +81,9 @@ import org.jivesoftware.smackx.pubsub.listener.ItemEventListener;
 import org.jivesoftware.smackx.pubsub.packet.PubSubNamespace;
 import org.jivesoftware.smackx.pubsub.provider.SubscriptionProvider;
 import org.jivesoftware.smackx.search.UserSearch;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.content.Context;
 import android.util.Log;
@@ -190,21 +197,13 @@ public class ChatHandler {
 					setupChat(message.getFrom());
 				if (XHTMLManager.isXHTMLMessage(message))
 				{
-					String xmlMessage = message.toXML();
-					Log.d("XMPPTest", xmlMessage);
-															
-					//Let's do this quick and dirty.
-					int start = xmlMessage.indexOf("<body xmlns");
-					int end = xmlMessage.indexOf("</html>");
-					if (start > 0 && end > 0)
-					{
-						String data = URLEncoder.encode(xmlMessage.substring(start, end));
-						String cmd = "javascript:navigator.xmppClient._didReceiveHtmlMessage('" + data + "','" + origin 
-									+ "','" + message.getPacketID() + "');";
-						mView.loadUrl(cmd);
-					}			
-                			
+					processXHTML(message, origin);                			
 				}
+		        Form msgForm = Form.getFormFrom(message);
+		        if (msgForm != null)
+		        {
+		        	processForm(msgForm);
+		        }
                 if (message.getBody() != null) {
                 	mView.loadUrl("javascript:navigator.xmppClient._didReceiveMessage('" + message.getBody() + "','" + origin 
                 			+ "','" + message.getPacketID() + "');");           
@@ -212,6 +211,52 @@ public class ChatHandler {
 				
 			}
 			
+			private void processXHTML(Message message, String origin)
+			{
+				String xmlMessage = message.toXML();
+				Log.d("XMPPTest", xmlMessage);
+														
+				//Let's do this quick and dirty.
+				int start = xmlMessage.indexOf("<body xmlns");
+				int end = xmlMessage.indexOf("</html>");
+				if (start > 0 && end > 0)
+				{
+					String data = URLEncoder.encode(xmlMessage.substring(start, end));
+					String cmd = "javascript:navigator.xmppClient._didReceiveHtmlMessage('" + data + "','" + origin 
+								+ "','" + message.getPacketID() + "');";
+					mView.loadUrl(cmd);
+				}			
+			}
+			
+			/*
+			 * Take a form and convert it to JSON, then send it!
+			 * Note: I could probably do something better than manual JSON
+			 */
+			private void processForm(Form msgForm)
+			{
+				String json = "[";
+				for (Iterator<FormField> fields = msgForm.getFields(); fields.hasNext(); ) {
+					FormField field = fields.next();
+					json += "{ 'type': '" + field.getType() + "',";
+					json += "'var': '" + field.getLabel() + "',";
+					json += "'value: ['";
+					for(Iterator<String> values = field.getValues(); values.hasNext();)
+					{
+						String value = values.next();
+						json += value;
+						if(values.hasNext())
+							json += "','";
+						else
+							json += "']";
+					}
+					json += "}";
+					if(fields.hasNext())
+						json +=",";
+					else
+						json +="]";
+				}
+				
+			}
 		};
 
 		PacketFilter filter = new MessageTypeFilter(Message.Type.chat);
@@ -248,6 +293,11 @@ public class ChatHandler {
 				});
 		
 	}
+	
+	/*
+	 * PubSub Methods
+	 * 
+	 */
 	
 	public void publish(String resource, String name, String xmlns, String xmlPayload, String nodeType, boolean persist)
 	{
@@ -330,6 +380,10 @@ public class ChatHandler {
 		}
 	}
 	
+	/*
+	 * File Transfer
+	 */
+	
 	public void sendFile(String file, String jid, String message)
 	{
 		if (mFileMan == null)
@@ -385,6 +439,10 @@ public class ChatHandler {
 			}
 		}
 	}
+	
+	/*
+	 * Roster Code
+	 */
 	
 	public void getRoster()
 	{
@@ -446,6 +504,13 @@ public class ChatHandler {
 		};
 	}
 	
+	/*
+	 * Conversation setup!
+	 * 
+	 * Messages should be moved here once we get this working properly
+	 * 
+	 */
+	
 	public Chat setupChat(final String person)
 	{
 		MessageListener listener = new MessageListener() {
@@ -494,6 +559,50 @@ public class ChatHandler {
 		}			
 	}
 	
+	/*
+	 * Have no idea how to test this!!!
+	 * 
+	 */
+	
+	public void sendFormMessage(String person, String data)
+	{
+		Chat chat = openChat.get(person);
+		if(chat == null)
+			chat = setupChat(person);
+		Message msg = new Message();
+		
+		Form completedForm = parseJsonForm(data);		
+		msg.addExtension(completedForm.getDataFormToSend());
+		
+		try {
+			chat.sendMessage(msg);
+		} catch (XMPPException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}			
+	}
+	
+	
+	private Form parseJsonForm(String data) {
+		Form completedForm = new Form("submit");
+		try {
+			JSONArray jsonForm = new JSONArray(data);
+			for(int i = 0; i < jsonForm.length(); ++i)
+			{
+				JSONObject obj = (JSONObject) jsonForm.get(i);
+				String type = (String) obj.get("type");
+				String var = (String) obj.get("var");
+				
+			}
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	
+		
+		return completedForm;
+	}
+
 	/*
 	 * This discovers services that are available and sends them to the Javascript.
 	 * 

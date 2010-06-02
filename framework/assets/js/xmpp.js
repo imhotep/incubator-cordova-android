@@ -10,7 +10,7 @@ function XMPPMessage(id,body,senderJid,receiverJid,isread,timeStamp, html)
 	this.receiverJid = receiverJid;
 	this.isread = isread ? true : false;
 
-  this.html = html ? true : false;
+	this.html = html ? true : false;
 	this.timeStamp = (timeStamp &&  timeStamp.constructor == Date ) ? timeStamp : new Date();
 }
 
