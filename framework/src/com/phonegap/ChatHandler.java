@@ -269,9 +269,18 @@ public class ChatHandler {
 		if (mPubSubMan == null)
 			mPubSubMan = new PubSubManager(mConn, resource);
 		
+		// This appears to have changed since I last wrote this!
 		LeafNode myNode;
 		try {
 			myNode = (LeafNode) mPubSubMan.getNode(nodeType);
+		}
+		catch (XMPPException e)
+		{
+			// Let's just set it to null.  If there's STILL a problem, we'll catch it again later.
+			myNode = null;
+		}
+		
+		try {
 			if (myNode == null)
 				myNode = (LeafNode) mPubSubMan.createNode(nodeType, form);
 			SimplePayload payload = new SimplePayload(name,xmlns, xmlPayload);
@@ -279,6 +288,7 @@ public class ChatHandler {
 
 			// Publish item
 			myNode.publish(item);
+			mView.loadUrl("javascript:navigator.xmppClient._didPublish()");
 		} catch (XMPPException e) {
 			// Handle Exception
 		}

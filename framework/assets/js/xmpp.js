@@ -40,10 +40,10 @@ function XMPPClient()
 	this.roster = [];
 	this.messageMap = {};
 	this.unreadCount = 0;
-  this.subs = {};
-  this.fileListeners = [];
-  this.services = [];
-  this.server = "";
+	this.subs = [];
+	this.fileListeners = [];
+  	this.services = [];
+  	this.server = "";
 }
 
 // username, password, domain are required
@@ -74,8 +74,9 @@ XMPPClient.prototype.publish = function(resource, name, xmlns, xmlPayload, nodeT
 
 XMPPClient.prototype.subscribe = function(resource, node, win)
 {
-  subs[win.name()] = win;
-  XmppHook.subscribe(resource, node, win.name());
+  console.log(win.name());
+  var key = this.subs.push(win)
+  XmppHook.subscribe(resource, node, key);
 }
 
 XMPPClient.prototype.discoverServices = function(resource)
@@ -278,6 +279,17 @@ XMPPClient.prototype._didReceiveError = function(err)
 {
 	this.broadcastEvent("Error");
 }
+
+XMPPClient.prototype._didPublish = function()
+{
+	this.broadcastEvent("DidPublish");
+}
+
+XMPPClient.prototype._xmppRecvSub = function(xml, key)
+{
+	subs[key](xml);
+}
+
 
 XMPPClient._install = function()
 {
