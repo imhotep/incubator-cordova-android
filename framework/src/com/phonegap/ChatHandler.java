@@ -36,11 +36,8 @@ import org.jivesoftware.smackx.NodeInformationProvider;
 import org.jivesoftware.smackx.PrivateDataManager;
 import org.jivesoftware.smackx.ServiceDiscoveryManager;
 import org.jivesoftware.smackx.XHTMLManager;
-import org.jivesoftware.smackx.filetransfer.FileTransferListener;
 import org.jivesoftware.smackx.filetransfer.FileTransferManager;
 import org.jivesoftware.smackx.filetransfer.FileTransferNegotiator;
-import org.jivesoftware.smackx.filetransfer.FileTransferRequest;
-import org.jivesoftware.smackx.filetransfer.IncomingFileTransfer;
 import org.jivesoftware.smackx.filetransfer.OutgoingFileTransfer;
 import org.jivesoftware.smackx.muc.MultiUserChat;
 import org.jivesoftware.smackx.packet.ChatStateExtension;
@@ -81,11 +78,7 @@ import org.jivesoftware.smackx.pubsub.packet.PubSubNamespace;
 import org.jivesoftware.smackx.pubsub.provider.SubscriptionProvider;
 import org.jivesoftware.smackx.search.UserSearch;
 
-
-
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.util.Log;
 import android.webkit.WebView;
 
@@ -96,7 +89,6 @@ public class ChatHandler {
 	Roster mRoster = null;
 	ChatManager mChatManager = null;
 	HashMap<String, Chat> openChat;
-	HashMap<String, ItemEventListener> mSubs;
 	boolean debug = false;
 	ServiceDiscoveryManager discoStu;
 	PubSubManager mPubSubMan;
@@ -112,7 +104,6 @@ public class ChatHandler {
 		mView = view;
 		mCtx = ctx;
 		openChat = new HashMap<String,Chat>();
-		mSubs = new HashMap<String, ItemEventListener>();
 		mPm = ProviderManager.getInstance();
 		configure(mPm);
 	}
@@ -301,30 +292,42 @@ public class ChatHandler {
 		try {
 			Node eventNode = mPubSubMan.getNode(node);
 			if(eventNode != null)
-			{
-				ItemEventListener sub = new ItemEventListener() {
+			{	
+				eventNode.addItemEventListener(new ItemEventListener() {
 					public void handlePublishedItems(ItemPublishEvent items) {
-						Iterator it = (Iterator) items.getItems();
-						while(it.hasNext())
+						List<PayloadItem> payloads = items.getItems();
+						for(PayloadItem item : payloads)
 						{
-							Item i = (Item) it.next();
-							String node = i.toXML();
-							mView.loadUrl("javascript:navigator.xmppClient._xmppRecvSub('" + node + "','" + event_key + "');");
+							String payloadXml = URLEncoder.encode(item.toXML());
+							mView.loadUrl("javascript:navigator.xmppClient._xmppRecvSub('" + payloadXml + "'," + event_key + ")");
 						}
+						
 					}
-				};
-				
-				mSubs.put(event_key, sub);
-				
-				eventNode.addItemEventListener(sub);
+				});
 				// My JID
 
 				eventNode.subscribe(mJid);
+				
+				mView.loadUrl("javascript:navigator.xmppClient._xmppSubWin()");
 			}
 		} catch (XMPPException e) {
-			mView.loadUrl("javascript:navigator.xmppClient._xmppSubFail()");
+			mView.loadUrl("javascript:navigator.xmppClient._didReceiveError()");
 		}
 		
+	}
+	
+	public void unsubscribe(String resource, String node)
+	{
+		if (mPubSubMan == null)
+			mPubSubMan = new PubSubManager(mConn, resource);
+		try {
+			Node eventNode = mPubSubMan.getNode(node);
+			eventNode.unsubscribe(mJid);
+		}
+		catch (XMPPException e)
+		{
+			//TODO: Throw an exception somewhere?
+		}
 	}
 	
 	public void sendFile(String file, String jid, String message)

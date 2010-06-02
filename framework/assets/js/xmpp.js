@@ -74,9 +74,13 @@ XMPPClient.prototype.publish = function(resource, name, xmlns, xmlPayload, nodeT
 
 XMPPClient.prototype.subscribe = function(resource, node, win)
 {
-  console.log(win.name());
-  var key = this.subs.push(win)
+  var key = this.subs.push(win);
   XmppHook.subscribe(resource, node, key);
+}
+
+XMPPClient.prototype.unsubscribe = function(resource, node)
+{
+	XmppHook.unsubscribe(resource, node);
 }
 
 XMPPClient.prototype.discoverServices = function(resource)
@@ -287,7 +291,12 @@ XMPPClient.prototype._didPublish = function()
 
 XMPPClient.prototype._xmppRecvSub = function(xml, key)
 {
-	subs[key](xml);
+	this.subs[key](xml);
+}
+
+XMPPClient.prototype._xmppSubWin = function(key)
+{
+	this.broadcastEvent("XmppSubWin");
 }
 
 
