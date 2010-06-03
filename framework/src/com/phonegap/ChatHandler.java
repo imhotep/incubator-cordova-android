@@ -23,7 +23,6 @@ import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.filter.MessageTypeFilter;
 import org.jivesoftware.smack.filter.PacketFilter;
-import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.Presence;
@@ -255,7 +254,7 @@ public class ChatHandler {
 					else
 						json +="]";
 				}
-				
+				mView.loadUrl("javascript:navigator.xmppClient._xmppFormRecv(" + json + ");");
 			}
 		};
 
@@ -571,7 +570,7 @@ public class ChatHandler {
 			chat = setupChat(person);
 		Message msg = new Message();
 		
-		Form completedForm = parseJsonForm(data);		
+		Form completedForm = parseForm(data);		
 		msg.addExtension(completedForm.getDataFormToSend());
 		
 		try {
@@ -583,22 +582,30 @@ public class ChatHandler {
 	}
 	
 	
-	private Form parseJsonForm(String data) {
+	private Form parseForm(String data) {
 		Form completedForm = new Form("submit");
 		try {
 			JSONArray jsonForm = new JSONArray(data);
 			for(int i = 0; i < jsonForm.length(); ++i)
 			{
+				FormField field = new FormField();
 				JSONObject obj = (JSONObject) jsonForm.get(i);
 				String type = (String) obj.get("type");
 				String var = (String) obj.get("var");
-				
+				JSONArray values = obj.getJSONArray("values");
+				field.setLabel(var);
+				field.setType(type);
+				for(int j = 0; j < values.length(); ++j)
+				{
+					String value = values.getString(j);
+					field.addValue(value);
+				}
+				completedForm.addField(field);
 			}
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	
 		
 		return completedForm;
 	}

@@ -103,6 +103,11 @@ XMPPClient.prototype.confirmTransfer = function(boolean)
   XmppHook.confirmTransfer(boolean);
 }
 
+XMPPClient.prototype.sendForm = function(resource, form)
+{
+	XmppHook.sendFormMessage(resource, form);
+}
+
 XMPPClient.prototype._xmppServiceFound = function(entityId, node, name)
 {
   var service = new XmppService(entityId, node, name);
@@ -297,6 +302,11 @@ XMPPClient.prototype._xmppRecvSub = function(xml, key)
 XMPPClient.prototype._xmppSubWin = function(key)
 {
 	this.broadcastEvent("XmppSubWin");
+}
+
+XMPPClient.prototype._xmppHasForm = function(json)
+{
+	this.broadcast("XmppHasForm", json);
 }
 
 
