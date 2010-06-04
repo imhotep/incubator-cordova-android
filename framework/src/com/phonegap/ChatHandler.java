@@ -252,7 +252,7 @@ public class ChatHandler {
 			{
 				// Take the form we got, convert to XML and URLEncode it
 				String xmlForm = URLEncoder.encode(msgForm.getDataFormToSend().toXML());
-				mView.loadUrl("javascript:navigator.xmppClient._didReceiveForm('" + xmlForm + "')");
+				mView.loadUrl("javascript:navigator.xmppClient._xmppHasForm('" + xmlForm + "')");
 			}
 		};
 
@@ -573,13 +573,6 @@ public class ChatHandler {
 		XmppFormHandler xmlHandler = new XmppFormHandler();
 		try {
 			//We have to explicitly use SAX because Xml.parse sucks and breaks!
-			/*
-			SAXParserFactory spf = SAXParserFactory.newInstance();
-			SAXParser sp = spf.newSAXParser();
-			XMLReader reader = sp.getXMLReader();
-		    reader.setContentHandler(xmlHandler);
-		    reader.parse(new InputSource(new ByteArrayInputStream(xmlData.getBytes())));
-		    */
 			Xml.parse(new ByteArrayInputStream(xmlData.getBytes()), Xml.Encoding.UTF_8, xmlHandler);
 		} catch (SAXException e1) {
 			// TODO Auto-generated catch block
