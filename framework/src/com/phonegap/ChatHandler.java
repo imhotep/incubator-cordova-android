@@ -93,6 +93,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
@@ -569,8 +570,26 @@ public class ChatHandler {
 		
 		String xmlData = URLDecoder.decode(data);
 		
+		XmppFormHandler xmlHandler = new XmppFormHandler();
+		try {
+			//We have to explicitly use SAX because Xml.parse sucks and breaks!
+			/*
+			SAXParserFactory spf = SAXParserFactory.newInstance();
+			SAXParser sp = spf.newSAXParser();
+			XMLReader reader = sp.getXMLReader();
+		    reader.setContentHandler(xmlHandler);
+		    reader.parse(new InputSource(new ByteArrayInputStream(xmlData.getBytes())));
+		    */
+			Xml.parse(new ByteArrayInputStream(xmlData.getBytes()), Xml.Encoding.UTF_8, xmlHandler);
+		} catch (SAXException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		DataForm output;
+		DataForm output = xmlHandler.myForm.getDataFormToSend();
 		
 		msg.addExtension(output);
 		
