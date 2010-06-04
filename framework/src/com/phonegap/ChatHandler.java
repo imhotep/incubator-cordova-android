@@ -1,12 +1,21 @@
 package com.phonegap;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 
 import org.jivesoftware.smack.Chat;
@@ -83,9 +92,16 @@ import org.jivesoftware.smackx.search.UserSearch;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 
 import android.content.Context;
 import android.util.Log;
+import android.util.Xml;
 import android.webkit.WebView;
 
 public class ChatHandler {
@@ -233,28 +249,9 @@ public class ChatHandler {
 			 */
 			private void processForm(Form msgForm)
 			{
-				String json = "[";
-				for (Iterator<FormField> fields = msgForm.getFields(); fields.hasNext(); ) {
-					FormField field = fields.next();
-					json += "{ 'type': '" + field.getType() + "',";
-					json += "'var': '" + field.getLabel() + "',";
-					json += "'value: ['";
-					for(Iterator<String> values = field.getValues(); values.hasNext();)
-					{
-						String value = values.next();
-						json += value;
-						if(values.hasNext())
-							json += "','";
-						else
-							json += "']";
-					}
-					json += "}";
-					if(fields.hasNext())
-						json +=",";
-					else
-						json +="]";
-				}
-				mView.loadUrl("javascript:navigator.xmppClient._xmppFormRecv(" + json + ");");
+				// Take the form we got, convert to XML and URLEncode it
+				String xmlForm = URLEncoder.encode(msgForm.getDataFormToSend().toXML());
+				mView.loadUrl("javascript:navigator.xmppClient._didReceiveForm('" + xmlForm + "')");
 			}
 		};
 
@@ -563,15 +560,19 @@ public class ChatHandler {
 	 * 
 	 */
 	
-	public void sendFormMessage(String person, String data)
+	public void sendFormMessage(String person, String data) 
 	{
 		Chat chat = openChat.get(person);
 		if(chat == null)
 			chat = setupChat(person);
 		Message msg = new Message();
 		
-		Form completedForm = parseForm(data);		
-		msg.addExtension(completedForm.getDataFormToSend());
+		String xmlData = URLDecoder.decode(data);
+		
+		
+		DataForm output;
+		
+		msg.addExtension(output);
 		
 		try {
 			chat.sendMessage(msg);
@@ -581,34 +582,6 @@ public class ChatHandler {
 		}			
 	}
 	
-	
-	private Form parseForm(String data) {
-		Form completedForm = new Form("submit");
-		try {
-			JSONArray jsonForm = new JSONArray(data);
-			for(int i = 0; i < jsonForm.length(); ++i)
-			{
-				FormField field = new FormField();
-				JSONObject obj = (JSONObject) jsonForm.get(i);
-				String type = (String) obj.get("type");
-				String var = (String) obj.get("var");
-				JSONArray values = obj.getJSONArray("values");
-				field.setLabel(var);
-				field.setType(type);
-				for(int j = 0; j < values.length(); ++j)
-				{
-					String value = values.getString(j);
-					field.addValue(value);
-				}
-				completedForm.addField(field);
-			}
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return completedForm;
-	}
 
 	/*
 	 * This discovers services that are available and sends them to the Javascript.

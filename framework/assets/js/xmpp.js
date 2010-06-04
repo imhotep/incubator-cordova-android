@@ -304,9 +304,9 @@ XMPPClient.prototype._xmppSubWin = function(key)
 	this.broadcastEvent("XmppSubWin");
 }
 
-XMPPClient.prototype._xmppHasForm = function(json)
+XMPPClient.prototype._xmppHasForm = function(xml)
 {
-	this.broadcast("XmppHasForm", json);
+	this.broadcast("XmppHasForm", xml);
 }
 
 
