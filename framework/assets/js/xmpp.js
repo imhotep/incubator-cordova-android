@@ -306,7 +306,7 @@ XMPPClient.prototype._xmppSubWin = function(key)
 
 XMPPClient.prototype._xmppHasForm = function(xml)
 {
-	this.broadcast("XmppHasForm", xml);
+	this.broadcastEvent("XmppHasForm", xml);
 }
 
 
