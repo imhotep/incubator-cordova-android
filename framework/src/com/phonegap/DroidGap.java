@@ -324,7 +324,7 @@ public class DroidGap extends Activity {
         if (keyCode == KeyEvent.KEYCODE_BACK) {       
         	String testUrl = appView.getUrl();
             appView.goBack();
-            if(appView.getUrl() == testUrl)
+            if(appView.getUrl().equals(testUrl))
             {
             	return super.onKeyDown(keyCode, event);
             }
