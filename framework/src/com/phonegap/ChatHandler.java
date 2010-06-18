@@ -661,6 +661,7 @@ public class ChatHandler {
 			packet = new Presence(Presence.Type.available, message, 0, Presence.Mode.available);
 		}
 		mConn.sendPacket(packet);
+		mView.loadUrl("javascript:navigator.xmppClient._sentPresence();");
 	}
 	
 	
