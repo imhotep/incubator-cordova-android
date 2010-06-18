@@ -118,6 +118,7 @@ public class ChatHandler {
 	FileTransferManager mFileMan;
 	GapTransferListener mFileListener;
 	String mJid;
+	Presence mPresence;
 
 	WebView mView;
 	Context mCtx;
@@ -172,6 +173,7 @@ public class ChatHandler {
 				setupListeners();
 				setupRosterListener();
 				mJid = username + "@" + config.getHost();
+				mPresence = new Presence(Presence.Type.available);
 			}
 		}
 	}
@@ -630,6 +632,37 @@ public class ChatHandler {
 
 		
 	}
+	
+	public void sendPresence(String type, String message)
+	{
+		Presence packet;
+		if (type.equals("dnd"))
+		{
+			packet = new Presence(Presence.Type.unavailable, message, 0, Presence.Mode.dnd);
+		}
+		else if (type.equals("away"))
+		{
+			packet = new Presence(Presence.Type.available, message, 0, Presence.Mode.away);
+		}
+		else if (type.equals("chat"))
+		{
+			packet = new Presence(Presence.Type.available, message, 0, Presence.Mode.chat);
+		}
+		else if (type.equals("xa"))
+		{
+			packet = new Presence(Presence.Type.unavailable, message, 0, Presence.Mode.xa);
+		}
+		else
+		{
+			if (message == null || message.length() == 0)
+			{
+				message = "Available";
+			}
+			packet = new Presence(Presence.Type.available, message, 0, Presence.Mode.available);
+		}
+		mConn.sendPacket(packet);
+	}
+	
 	
 	/* 
 	 * This was grabbed from the Ignite Realtime Board, and is the META-INF file that is  

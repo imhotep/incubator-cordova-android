@@ -309,6 +309,11 @@ XMPPClient.prototype._xmppHasForm = function(xml)
 	this.broadcastEvent("XmppHasForm", xml);
 }
 
+XMPPClient.prototype._sentPresence = function()
+{
+	this.broadcastEvent('XmppPresenceSent');
+}
+
 
 XMPPClient._install = function()
 {
