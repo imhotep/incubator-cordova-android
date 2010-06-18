@@ -108,6 +108,11 @@ XMPPClient.prototype.sendForm = function(resource, form)
 	XmppHook.sendFormMessage(resource, form);
 }
 
+XMPPClient.prototype.setPresence = function(status, message)
+{
+	XmppHook.sendPresence(status, message);
+}
+
 XMPPClient.prototype._xmppServiceFound = function(entityId, node, name)
 {
   var service = new XmppService(entityId, node, name);
